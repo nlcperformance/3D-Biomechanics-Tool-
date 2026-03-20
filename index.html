@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A-Level PE Biomechanics: 3D Explorer (OCR H555/01)</title>
+    <!-- Tailwind CSS for UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; }
+        .pointer-events-auto { pointer-events: auto; }
+        
+        /* Custom Scrollbar */
+        .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: #1e293b; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        
+        .nav-btn { transition: all 0.2s; }
+        .nav-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        
+        /* Range slider styling */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; margin-top: -6px; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #475569; border-radius: 2px; }
+        
+        .gauge-fill { transition: width 0.1s linear, background-color 0.3s ease; }
+        .keyword { font-weight: bold; color: #93c5fd; } /* blue-300 */
+        .definition { font-size: 0.75rem; color: #94a3b8; font-style: italic; } /* slate-400 */
+        .examiner-tip { border-left: 3px solid #ef4444; background: rgba(239, 68, 68, 0.1); padding: 0.5rem; margin-top: 0.5rem; border-radius: 0 0.25rem 0.25rem 0; font-size: 0.8rem; }
+    </style>
+</head>
+<body class="antialiased text-sm md:text-base">
+
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+        
+        <!-- Left Sidebar (Controls & Theory) -->
+        <div class="w-full md:w-1/3 lg:w-1/4 h-full bg-slate-900/95 backdrop-blur-md border-r border-slate-700 flex flex-col pointer-events-auto shadow-2xl">
+            
+            <div class="p-4 border-b border-slate-700">
+                <h1 class="text-lg font-bold text-blue-400">OCR H555/01</h1>
+                <h2 class="text-xl font-black text-white tracking-tight">Biomechanics 3D (Examiner Focus)</h2>
+            </div>
+
+            <!-- Navigation Grid -->
+            <div class="grid grid-cols-2 gap-1 p-2 bg-slate-800 border-b border-slate-700">
+                <button onclick="switchModule(1)" id="btn-mod-1" class="nav-btn active py-2 px-1 text-xs font-bold rounded border border-slate-600 hover:bg-slate-700">Axes & Planes</button>
+                <button onclick="switchModule(2)" id="btn-mod-2" class="nav-btn py-2 px-1 text-xs font-bold rounded border border-slate-600 hover:bg-slate-700">Angular Mom.</button>
+                <button onclick="switchModule(4)" id="btn-mod-4" class="nav-btn py-2 px-1 text-xs font-bold rounded border border-slate-600 hover:bg-slate-700 text-yellow-300">Forces & Stability</button>
+                <button onclick="switchModule(3)" id="btn-mod-3" class="nav-btn py-2 px-1 text-xs font-bold rounded border border-slate-600 hover:bg-slate-700">Magnus Effect</button>
+            </div>
+
+            <!-- Scrollable Content Area -->
+            <div class="flex-1 overflow-y-auto sidebar-scroll p-5" id="module-content">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+
+        <!-- Right Side Overlays (Hint/Stats) -->
+        <div class="flex-1 relative hidden md:block">
+            <div class="absolute bottom-5 right-5 bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-lg pointer-events-auto text-xs text-slate-300 shadow-lg">
+                <p>🖱️ <b>Left Click + Drag</b> to rotate camera</p>
+                <p>🔍 <b>Scroll</b> to zoom in/out</p>
+                <p>⚙️ <b>Right Click + Drag</b> to pan</p>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // ==========================================
+    // THREE.JS SETUP & SCENE INITIALIZATION
+    // ==========================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f172a); 
+    scene.fog = new THREE.Fog(0x0f172a, 10, 50);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(5, 3, 7);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 1, 0);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 5);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    const gridHelper = new THREE.GridHelper(20, 20, 0x475569, 0x1e293b);
+    scene.add(gridHelper);
+
+    // ==========================================
+    // 3D ASSETS CREATION
+    // ==========================================
+
+    // 1. HUMANOID MODEL
+    const humanGroup = new THREE.Group();
+    humanGroup.position.y = 1.5; 
+    scene.add(humanGroup);
+
+    const bodyMat = new THREE.MeshPhongMaterial({ color: 0x94a3b8, shininess: 30 });
+    
+    function createLimb(width, length, depth, material, yOffset) {
+        const group = new THREE.Group();
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, length, depth), material);
+        mesh.position.y = yOffset; 
+        mesh.castShadow = true;
+        group.add(mesh);
+        return group;
+    }
+
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), bodyMat);
+    torso.castShadow = true;
+    humanGroup.add(torso);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), bodyMat);
+    head.position.y = 0.85;
+    humanGroup.add(head);
+
+    const leftShoulder = new THREE.Group(); leftShoulder.position.set(-0.55, 0.5, 0);
+    const leftUpperArm = createLimb(0.2, 0.6, 0.2, bodyMat, -0.3); leftShoulder.add(leftUpperArm);
+    const leftElbow = new THREE.Group(); leftElbow.position.set(0, -0.6, 0);
+    const leftLowerArm = createLimb(0.15, 0.5, 0.15, bodyMat, -0.25); leftElbow.add(leftLowerArm);
+    leftUpperArm.add(leftElbow); humanGroup.add(leftShoulder);
+
+    const rightShoulder = new THREE.Group(); rightShoulder.position.set(0.55, 0.5, 0);
+    const rightUpperArm = createLimb(0.2, 0.6, 0.2, bodyMat, -0.3); rightShoulder.add(rightUpperArm);
+    const rightElbow = new THREE.Group(); rightElbow.position.set(0, -0.6, 0);
+    const rightLowerArm = createLimb(0.15, 0.5, 0.15, bodyMat, -0.25); rightElbow.add(rightLowerArm);
+    rightUpperArm.add(rightElbow); humanGroup.add(rightShoulder);
+
+    // Legs designed to spread for stability module
+    const leftHip = new THREE.Group(); leftHip.position.set(-0.25, -0.6, 0);
+    const leftUpperLeg = createLimb(0.25, 0.7, 0.25, bodyMat, -0.35); leftHip.add(leftUpperLeg);
+    const leftKnee = new THREE.Group(); leftKnee.position.set(0, -0.7, 0);
+    const leftLowerLeg = createLimb(0.2, 0.6, 0.2, bodyMat, -0.3); leftKnee.add(leftLowerLeg);
+    leftUpperLeg.add(leftKnee); humanGroup.add(leftHip);
+
+    const rightHip = new THREE.Group(); rightHip.position.set(0.25, -0.6, 0);
+    const rightUpperLeg = createLimb(0.25, 0.7, 0.25, bodyMat, -0.35); rightHip.add(rightUpperLeg);
+    const rightKnee = new THREE.Group(); rightKnee.position.set(0, -0.7, 0);
+    const rightLowerLeg = createLimb(0.2, 0.6, 0.2, bodyMat, -0.3); rightKnee.add(rightLowerLeg);
+    rightUpperLeg.add(rightKnee); humanGroup.add(rightHip);
+
+    // Center of Mass (CoM) indicator
+    const comMarker = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({color: 0xffe814}));
+    humanGroup.add(comMarker);
+
+    // --- MODULE 1: AXES & PLANES ---
+    const axisGroup = new THREE.Group();
+    humanGroup.add(axisGroup);
+    
+    // Axes Lines
+    const matLong = new THREE.LineBasicMaterial({ color: 0x22c55e, linewidth: 3 }); // Green
+    const matTrans = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 3 }); // Red
+    const matFront = new THREE.LineBasicMaterial({ color: 0x3b82f6, linewidth: 3 }); // Blue
+    const lineLong = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -3, 0), new THREE.Vector3(0, 3, 0)]), matLong);
+    const lineTrans = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3, 0, 0), new THREE.Vector3(3, 0, 0)]), matTrans);
+    const lineFront = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -3), new THREE.Vector3(0, 0, 3)]), matFront);
+    axisGroup.add(lineLong, lineTrans, lineFront);
+
+    // Planes of Movement (Transparent panels)
+    const planeGeo = new THREE.PlaneGeometry(4, 4);
+    const planeMatFrontal = new THREE.MeshBasicMaterial({color: 0x3b82f6, transparent: true, opacity: 0.2, side: THREE.DoubleSide}); // Frontal Plane
+    const planeMatSagittal = new THREE.MeshBasicMaterial({color: 0xef4444, transparent: true, opacity: 0.2, side: THREE.DoubleSide}); // Sagittal Plane
+    const planeMatTransverse = new THREE.MeshBasicMaterial({color: 0x22c55e, transparent: true, opacity: 0.2, side: THREE.DoubleSide}); // Transverse Plane
+
+    const frontalPlane = new THREE.Mesh(planeGeo, planeMatFrontal);
+    const sagittalPlane = new THREE.Mesh(planeGeo, planeMatSagittal);
+    sagittalPlane.rotation.y = Math.PI / 2;
+    const transversePlane = new THREE.Mesh(planeGeo, planeMatTransverse);
+    transversePlane.rotation.x = Math.PI / 2;
+    
+    axisGroup.add(frontalPlane, sagittalPlane, transversePlane);
+    frontalPlane.visible = sagittalPlane.visible = transversePlane.visible = false;
+
+    // --- MODULE 4: FORCES & STABILITY ---
+    const stabilityGroup = new THREE.Group();
+    scene.add(stabilityGroup);
+
+    // Base of Support Polygon (on the ground)
+    const bosGeo = new THREE.PlaneGeometry(1, 0.6);
+    const bosMat = new THREE.MeshBasicMaterial({color: 0xeab308, transparent: true, opacity: 0.4, side: THREE.DoubleSide});
+    const bosMesh = new THREE.Mesh(bosGeo, bosMat);
+    bosMesh.rotation.x = -Math.PI / 2;
+    bosMesh.position.y = 0.01; // Just above floor
+    stabilityGroup.add(bosMesh);
+
+    // Line of Gravity (from CoM straight down)
+    const logMat = new THREE.LineDashedMaterial({ color: 0xffe814, dashSize: 0.2, gapSize: 0.1 });
+    const logGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(0, 0, 0)]);
+    const logLine = new THREE.Line(logGeo, logMat);
+    logLine.computeLineDistances();
+    stabilityGroup.add(logLine);
+
+    // Free Body Diagram Arrows
+    const weightArrow = new THREE.ArrowHelper(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 1.5, 0), 1.5, 0xef4444, 0.3, 0.2);
+    const reactLeftArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-0.25, 0, 0), 0.75, 0x22c55e, 0.2, 0.15);
+    const reactRightArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0.25, 0, 0), 0.75, 0x22c55e, 0.2, 0.15);
+    
+    stabilityGroup.add(weightArrow, reactLeftArrow, reactRightArrow);
+    weightArrow.visible = reactLeftArrow.visible = reactRightArrow.visible = false; 
+
+    // --- MODULE 3: MAGNUS EFFECT ---
+    const magnusGroup = new THREE.Group();
+    magnusGroup.position.y = 1.5;
+    scene.add(magnusGroup);
+    
+    const ballGeo = new THREE.SphereGeometry(0.8, 32, 16);
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#eab308'; ctx.fillRect(0,0,256,256);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 110, 256, 36);
+    const ballTex = new THREE.CanvasTexture(canvas);
+    ballTex.wrapS = THREE.RepeatWrapping; ballTex.wrapT = THREE.RepeatWrapping; ballTex.repeat.set(2, 1);
+    const ballMat = new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.8 });
+    const ball = new THREE.Mesh(ballGeo, ballMat);
+    magnusGroup.add(ball);
+
+    // Applied Force (Strike) Arrow - demonstrates Eccentric Force
+    const strikeArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-2.2, 0, 0), 1.2, 0xd946ef, 0.4, 0.3);
+    magnusGroup.add(strikeArrow);
+
+    const arrowGroup = new THREE.Group();
+    magnusGroup.add(arrowGroup);
+    let airflowArrows = [];
+    function createAirflowArrow(yPos, colorHex) {
+        const arrow = new THREE.ArrowHelper(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(2, yPos, 0), 1.5, colorHex, 0.3, 0.2);
+        arrowGroup.add(arrow);
+        return arrow;
+    }
+    const topAir1 = createAirflowArrow(1.2, 0xffffff);
+    const topAir2 = createAirflowArrow(0.9, 0xffffff);
+    const botAir1 = createAirflowArrow(-0.9, 0xffffff);
+    const botAir2 = createAirflowArrow(-1.2, 0xffffff);
+    airflowArrows = [topAir1, topAir2, botAir1, botAir2];
+
+    const forceArrow = new THREE.ArrowHelper(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0,0,0), 2, 0xef4444, 0.5, 0.5);
+    magnusGroup.add(forceArrow);
+
+    // ==========================================
+    // APP STATE & LOGIC
+    // ==========================================
+    let currentModule = 1;
+    let activeAxis = 'none'; 
+    let tuckFactor = 0; 
+    let stanceFactor = 0; 
+    let showFBD = false;
+    let angularMomentum = 500; 
+    let maxMI = 100; 
+    let minMI = 25;  
+    let currentMI = maxMI;
+    let angularVelocity = angularMomentum / currentMI;
+    
+    // Magnus Effect State
+    let strikeOffset = 0; 
+
+    // ==========================================
+    // UI CONTENT TEMPLATES (Examiner Focused)
+    // ==========================================
+    const uiContent = {
+        1: `
+            <h3 class="text-lg font-bold text-white mb-2">I. Axes vs. Planes of Movement</h3>
+            <div class="examiner-tip mb-4">
+                <b>Examiner Tip:</b> Candidates frequently confuse Axes with Planes. Remember: An <span class="keyword">Axis of Rotation</span> <span class="definition">[imaginary line a body rotates around]</span> pairs with a <span class="keyword">Plane of Movement</span> <span class="definition">[flat surface motion occurs along]</span>.
+            </div>
+            
+            <div class="space-y-3">
+                <div class="p-3 bg-slate-800 rounded border border-slate-700">
+                    <button onclick="setAxis('transverse')" class="w-full text-left font-bold text-red-400 hover:text-red-300 flex justify-between items-center">
+                        <span>Transverse Axis (Red)</span>
+                        <span class="text-xs bg-slate-700 px-2 py-1 rounded">Play</span>
+                    </button>
+                    <p class="text-xs text-slate-400 mt-2">Motion occurs ALONG the <b>Sagittal Plane</b> (splitting left/right). <br><i>Ex: Somersault, forward roll.</i></p>
+                </div>
+
+                <div class="p-3 bg-slate-800 rounded border border-slate-700">
+                    <button onclick="setAxis('longitudinal')" class="w-full text-left font-bold text-green-400 hover:text-green-300 flex justify-between items-center">
+                        <span>Longitudinal Axis (Green)</span>
+                        <span class="text-xs bg-slate-700 px-2 py-1 rounded">Play</span>
+                    </button>
+                    <p class="text-xs text-slate-400 mt-2">Motion occurs ALONG the <b>Transverse Plane</b> (splitting top/bottom). <br><i>Ex: Ice skater spin, 360 twist.</i></p>
+                </div>
+
+                <div class="p-3 bg-slate-800 rounded border border-slate-700">
+                    <button onclick="setAxis('frontal')" class="w-full text-left font-bold text-blue-400 hover:text-blue-300 flex justify-between items-center">
+                        <span>Frontal Axis (Blue)</span>
+                        <span class="text-xs bg-slate-700 px-2 py-1 rounded">Play</span>
+                    </button>
+                    <p class="text-xs text-slate-400 mt-2">Motion occurs ALONG the <b>Frontal Plane</b> (splitting front/back). <br><i>Ex: Cartwheel.</i></p>
+                </div>
+            </div>
+        `,
+        2: `
+            <h3 class="text-lg font-bold text-white mb-2">II. Conservation of Angular Momentum</h3>
+            <div class="examiner-tip mb-4">
+                <b>Examiner Tip:</b> Do not use "Centre of Mass" here. Moment of Inertia depends on how mass is distributed from the <b>Axis of Rotation</b>.
+            </div>
+            
+            <div class="p-4 bg-slate-800 rounded border border-slate-700 mb-4">
+                <label class="block text-sm font-bold text-white mb-2">Gymnast Shape (Tuck Factor)</label>
+                <div class="flex justify-between text-xs text-slate-400 mb-1">
+                    <span>Layout (High MI)</span>
+                    <span>Tuck (Low MI)</span>
+                </div>
+                <input type="range" min="0" max="1" step="0.01" value="0" oninput="updateTuck(this.value)" class="w-full">
+            </div>
+
+            <!-- Gauges -->
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-bold text-purple-400">Angular Momentum (AM)</span>
+                        <span id="val-am" class="font-mono">500</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded h-2">
+                        <div class="bg-purple-500 h-2 rounded w-full gauge-fill"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-bold text-red-400">Moment of Inertia (MI)</span>
+                        <span id="val-mi" class="font-mono">100</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded h-2">
+                        <div id="bar-mi" class="bg-red-500 h-2 rounded w-full gauge-fill"></div>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1"><span class="keyword">MI</span> <span class="definition">[Resistance to rotation]</span> decreases as mass nears axis.</p>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-bold text-green-400">Angular Velocity (AV)</span>
+                        <span id="val-av" class="font-mono">5.0</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded h-2 relative overflow-hidden">
+                        <div id="bar-av" class="bg-green-500 h-2 rounded w-[25%] gauge-fill"></div>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1"><span class="keyword">AV</span> <span class="definition">[Rate of rotation]</span> increases proportionally.</p>
+                </div>
+            </div>
+        `,
+        4: `
+            <h3 class="text-lg font-bold text-white mb-2">IV. Forces & Stability</h3>
+            <div class="examiner-tip mb-4">
+                <b>Examiner Tip:</b> Marks are lost when Free Body Diagram arrows start in the wrong place. Weight MUST start exactly at the CoM. Reaction Force MUST start at the ground contact point.
+            </div>
+
+            <div class="p-4 bg-slate-800 rounded border border-slate-700 mb-4">
+                <label class="block text-sm font-bold text-white mb-2">Adjust Stance for Stability</label>
+                <input type="range" min="0" max="1" step="0.01" value="0" oninput="updateStance(this.value)" class="w-full">
+                <p class="text-xs text-slate-400 mt-2">Notice the <span class="keyword">Base of Support</span> <span class="definition">[area of contact]</span> widening and the CoM dropping. "Number of points of contact" does NOT gain marks; "size/area of BoS" does.</p>
+            </div>
+
+            <div class="p-3 bg-slate-800 rounded border border-slate-700 mb-4">
+                <button onclick="toggleFBD()" id="btn-fbd" class="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold text-white transition">Show Free Body Diagram</button>
+                <div id="fbd-desc" class="hidden mt-3 text-xs text-slate-300 space-y-2">
+                    <p><b class="text-red-400">Weight Arrow:</b> Starts strictly at the <span class="keyword">Centre of Mass</span> <span class="definition">[point of even mass distribution]</span>.</p>
+                    <p><b class="text-green-400">Reaction Arrow:</b> Starts at the feet.</p>
+                    <p><b>Net Force:</b> To jump, the athlete must push down harder, increasing Reaction Force, creating an unbalanced <span class="keyword">Net Force</span> <span class="definition">[sum of all forces on a body]</span> upwards.</p>
+                </div>
+            </div>
+        `,
+        3: `
+            <h3 class="text-lg font-bold text-white mb-2">III. Fluid Mechanics & Spin</h3>
+            <p class="text-slate-400 mb-4 text-xs">The <span class="keyword">Magnus Effect</span> <span class="definition">[force created by pressure differences causing deviation]</span> occurs when an eccentric force imparts spin.</p>
+            
+            <div class="p-4 bg-slate-800 rounded border border-slate-700 mb-4">
+                <label class="block text-sm font-bold text-fuchsia-400 mb-2">Point of Force Application</label>
+                <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                    <span>Bottom (Backspin)</span>
+                    <span>Center (No Spin)</span>
+                    <span>Top (Topspin)</span>
+                </div>
+                <!-- Slider ranges from -1 (bottom) to 1 (top) -->
+                <input type="range" min="-1" max="1" step="0.1" value="0" oninput="updateStrikePoint(this.value)" class="w-full">
+                <p class="text-xs text-slate-400 mt-2">Move the slider to apply an <span class="keyword">Eccentric Force</span> <span class="definition">[force applied outside the centre of mass]</span>.</p>
+            </div>
+
+            <div id="magnus-explanation" class="p-4 bg-slate-800 rounded border border-slate-700 text-sm">
+                <!-- Injected via JS based on slider -->
+            </div>
+        `
+    };
+
+    // ==========================================
+    // INTERACTION FUNCTIONS
+    // ==========================================
+    const moduleContainer = document.getElementById('module-content');
+
+    function resetHumanPose() {
+        humanGroup.rotation.set(0,0,0);
+        humanGroup.position.y = 1.5;
+        leftShoulder.rotation.set(0,0,0); rightShoulder.rotation.set(0,0,0);
+        leftHip.rotation.set(0,0,0); rightHip.rotation.set(0,0,0);
+        leftKnee.rotation.set(0,0,0); rightKnee.rotation.set(0,0,0);
+        leftHip.position.x = -0.25; rightHip.position.x = 0.25;
+        tuckFactor = 0; stanceFactor = 0; showFBD = false;
+        weightArrow.visible = reactLeftArrow.visible = reactRightArrow.visible = false;
+        
+        frontalPlane.visible = sagittalPlane.visible = transversePlane.visible = false;
+        lineLong.visible = lineTrans.visible = lineFront.visible = true;
+    }
+
+    window.switchModule = function(mod) {
+        currentModule = mod;
+        
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-mod-${mod}`).classList.add('active');
+        
+        moduleContainer.innerHTML = uiContent[mod];
+
+        activeAxis = 'none';
+        resetHumanPose();
+
+        if (mod === 1) {
+            humanGroup.visible = true; axisGroup.visible = true;
+            stabilityGroup.visible = false; magnusGroup.visible = false;
+            camera.position.set(5, 3, 7);
+        } 
+        else if (mod === 2) {
+            humanGroup.visible = true; axisGroup.visible = false;
+            stabilityGroup.visible = false; magnusGroup.visible = false;
+            camera.position.set(6, 2, 0); 
+            setAxis('transverse'); 
+            updateTuck(0); 
+        }
+        else if (mod === 4) {
+            humanGroup.visible = true; axisGroup.visible = false;
+            stabilityGroup.visible = true; magnusGroup.visible = false;
+            camera.position.set(0, 2, 6);
+            updateStance(0);
+        }
+        else if (mod === 3) {
+            humanGroup.visible = false; axisGroup.visible = false;
+            stabilityGroup.visible = false; magnusGroup.visible = true;
+            camera.position.set(0, 0, 6);
+            updateStrikePoint(0); // Initialize at 0 (No Spin)
+        }
+    };
+
+    // Mod 1
+    window.setAxis = function(axis) {
+        activeAxis = axis;
+        humanGroup.rotation.set(0,0,0);
+        
+        frontalPlane.visible = sagittalPlane.visible = transversePlane.visible = false;
+        lineLong.visible = lineTrans.visible = lineFront.visible = false; 
+        
+        if(axis === 'transverse') {
+            sagittalPlane.visible = true; 
+            lineTrans.visible = true;     
+        } else if (axis === 'longitudinal') {
+            transversePlane.visible = true; 
+            lineLong.visible = true;
+        } else if (axis === 'frontal') {
+            frontalPlane.visible = true;
+            lineFront.visible = true;
+        }
+    };
+
+    // Mod 2
+    window.updateTuck = function(val) {
+        tuckFactor = parseFloat(val);
+        
+        leftShoulder.rotation.x = -tuckFactor * 2.8; rightShoulder.rotation.x = -tuckFactor * 2.8;
+        leftElbow.rotation.x = -tuckFactor * 1.5; rightElbow.rotation.x = -tuckFactor * 1.5;
+        leftHip.rotation.x = -tuckFactor * 2.2; rightHip.rotation.x = -tuckFactor * 2.2;
+        leftKnee.rotation.x = tuckFactor * 2.5; rightKnee.rotation.x = tuckFactor * 2.5;
+
+        currentMI = maxMI - (tuckFactor * (maxMI - minMI));
+        angularVelocity = angularMomentum / currentMI;
+
+        if(document.getElementById('val-mi')) {
+            document.getElementById('val-mi').innerText = currentMI.toFixed(1);
+            document.getElementById('bar-mi').style.width = `${(currentMI / maxMI) * 100}%`;
+            document.getElementById('val-av').innerText = angularVelocity.toFixed(1);
+            const maxAV = angularMomentum / minMI;
+            document.getElementById('bar-av').style.width = `${(angularVelocity / maxAV) * 100}%`;
+            document.getElementById('bar-mi').style.backgroundColor = tuckFactor > 0.5 ? '#22c55e' : '#ef4444';
+            document.getElementById('bar-av').style.backgroundColor = tuckFactor > 0.5 ? '#ef4444' : '#22c55e'; 
+        }
+    };
+
+    // Mod 4: Stability & Forces
+    window.updateStance = function(val) {
+        stanceFactor = parseFloat(val);
+        humanGroup.position.y = 1.5 - (stanceFactor * 0.4);
+        leftHip.rotation.z = -stanceFactor * 0.5;
+        rightHip.rotation.z = stanceFactor * 0.5;
+        leftKnee.rotation.z = stanceFactor * 0.5;
+        rightKnee.rotation.z = -stanceFactor * 0.5;
+
+        const spread = 0.5 + (stanceFactor * 0.8);
+        bosMesh.scale.set(spread, 1, 1);
+        updateForcesPosition();
+    };
+
+    window.toggleFBD = function() {
+        showFBD = !showFBD;
+        weightArrow.visible = reactLeftArrow.visible = reactRightArrow.visible = showFBD;
+        const btn = document.getElementById('btn-fbd');
+        const desc = document.getElementById('fbd-desc');
+        
+        if(showFBD) {
+            btn.innerText = "Hide Free Body Diagram";
+            btn.classList.replace('bg-slate-700', 'bg-blue-600');
+            desc.classList.remove('hidden');
+            updateForcesPosition();
+        } else {
+            btn.innerText = "Show Free Body Diagram";
+            btn.classList.replace('bg-blue-600', 'bg-slate-700');
+            desc.classList.add('hidden');
+        }
+    };
+
+    function updateForcesPosition() {
+        const comY = humanGroup.position.y;
+        logGeo.setFromPoints([new THREE.Vector3(0, comY, 0), new THREE.Vector3(0, 0, 0)]);
+        logLine.computeLineDistances();
+        weightArrow.position.set(0, comY, 0); 
+        const footX = 0.25 + (stanceFactor * 0.4);
+        reactLeftArrow.position.set(-footX, 0, 0);
+        reactRightArrow.position.set(footX, 0, 0);
+    }
+
+    // Mod 3: Interactive Magnus Effect
+    window.updateStrikePoint = function(val) {
+        strikeOffset = parseFloat(val);
+        // Move the visual strike arrow up and down (radius of ball is 0.8)
+        strikeArrow.position.y = strikeOffset * 0.8;
+
+        const expDiv = document.getElementById('magnus-explanation');
+
+        if (strikeOffset > 0.1) {
+            // TOPSPIN: Striking above the center of mass
+            forceArrow.visible = true;
+            forceArrow.setDirection(new THREE.Vector3(0, -1, 0)); 
+            forceArrow.setColor(new THREE.Color(0xef4444)); 
+            expDiv.innerHTML = `
+                <h4 class="font-bold text-red-400 mb-1">Topspin (Eccentric Force Above CoM)</h4>
+                <ul class="list-disc pl-4 text-xs text-slate-300 space-y-1">
+                    <li><b>Top of ball:</b> Airflow opposes spin direction &rarr; High Pressure, Low Velocity.</li>
+                    <li><b>Bottom of ball:</b> Airflow moves with spin &rarr; Low Pressure, High Velocity.</li>
+                    <li><b>Result:</b> <span class="keyword">Pressure Gradient</span> forces the ball <b>DOWNWARDS</b>.</li>
+                </ul>`;
+            topAir1.setColor(0xef4444); topAir2.setColor(0xef4444); 
+            botAir1.setColor(0x22c55e); botAir2.setColor(0x22c55e); 
+
+        } else if (strikeOffset < -0.1) {
+            // BACKSPIN: Striking below the center of mass
+            forceArrow.visible = true;
+            forceArrow.setDirection(new THREE.Vector3(0, 1, 0)); 
+            forceArrow.setColor(new THREE.Color(0x22c55e)); 
+            expDiv.innerHTML = `
+                <h4 class="font-bold text-green-400 mb-1">Backspin (Eccentric Force Below CoM)</h4>
+                <ul class="list-disc pl-4 text-xs text-slate-300 space-y-1">
+                    <li><b>Top of ball:</b> Airflow moves with spin &rarr; Low Pressure, High Velocity.</li>
+                    <li><b>Bottom of ball:</b> Airflow opposes spin &rarr; High Pressure, Low Velocity.</li>
+                    <li><b>Result:</b> <span class="keyword">Pressure Gradient</span> forces the ball <b>UPWARDS</b>.</li>
+                </ul>`;
+            topAir1.setColor(0x22c55e); topAir2.setColor(0x22c55e); 
+            botAir1.setColor(0xef4444); botAir2.setColor(0xef4444); 
+            
+        } else {
+            // NO SPIN: Striking exactly through the center of mass
+            forceArrow.visible = false;
+            expDiv.innerHTML = `
+                <h4 class="font-bold text-slate-300 mb-1">No Spin (Concentric Force)</h4>
+                <p class="text-xs text-slate-400">Applying force exactly through the <span class="keyword">Centre of Mass</span> creates a <b>Concentric Force</b>. The ball travels forwards linearly without any spin, meaning the Magnus effect does not occur.</p>
+            `;
+            topAir1.setColor(0xffffff); topAir2.setColor(0xffffff); 
+            botAir1.setColor(0xffffff); botAir2.setColor(0xffffff); 
+        }
+    };
+
+    // ==========================================
+    // ANIMATION LOOP
+    // ==========================================
+    const clock = new THREE.Clock();
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+        const time = clock.getElapsedTime();
+
+        controls.update();
+
+        if (currentModule === 1) {
+            const speed = 2 * delta;
+            if (activeAxis === 'longitudinal') humanGroup.rotation.y += speed;
+            if (activeAxis === 'transverse') humanGroup.rotation.x -= speed; 
+            if (activeAxis === 'frontal') humanGroup.rotation.z -= speed;
+        } 
+        else if (currentModule === 2) {
+            const visualSpeed = angularVelocity * 0.15 * delta;
+            humanGroup.rotation.x -= visualSpeed;
+        }
+        else if (currentModule === 3) {
+            // Positive offset (topspin) means the ball rotates forward (negative Z rotation in this setup)
+            const ballSpinSpeed = 10 * delta * strikeOffset;
+            ball.rotation.z -= ballSpinSpeed;
+
+            airflowArrows.forEach((arrow, index) => {
+                let speed = 2 * delta;
+                if (strikeOffset > 0.1) { // Topspin
+                    if (index < 2) speed *= 0.5; else speed *= 2.0;
+                } else if (strikeOffset < -0.1) { // Backspin
+                    if (index < 2) speed *= 2.0; else speed *= 0.5;
+                }
+                arrow.position.x -= speed;
+                if (arrow.position.x < -3) arrow.position.x = 3;
+                arrow.position.y += Math.sin(time * 5 + index) * 0.002;
+            });
+            
+            // Pulse the strike arrow slightly to make it look active
+            strikeArrow.position.x = -2.2 + Math.sin(time * 8) * 0.05;
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', onWindowResize, false);
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    switchModule(1);
+    animate();
+
+</script>
+</body>
+</html>
