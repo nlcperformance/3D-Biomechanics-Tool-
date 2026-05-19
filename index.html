@@ -10,31 +10,55 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        body { margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; background-color: #0b0f19; color: #f1f5f9; }
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; }
         .pointer-events-auto { pointer-events: auto; }
         
         /* Custom Scrollbar */
         .sidebar-scroll::-webkit-scrollbar { width: 6px; }
-        .sidebar-scroll::-webkit-scrollbar-track { background: #1e293b; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: #111827; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
         
-        .nav-btn { transition: all 0.2s; }
-        .nav-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        .nav-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .nav-btn.active { 
+            background-color: #3b82f6; 
+            color: white; 
+            border-color: #60a5fa; 
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.6); 
+        }
         
-        /* Range slider styling */
+        /* Premium range slider */
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; margin-top: -6px; }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #475569; border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { 
+            -webkit-appearance: none; 
+            height: 18px; 
+            width: 18px; 
+            border-radius: 50%; 
+            background: #3b82f6; 
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+            cursor: pointer; 
+            margin-top: -7px; 
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #374151; border-radius: 2px; }
         
-        .gauge-fill { transition: width 0.1s linear, background-color 0.3s ease; }
-        .keyword { font-weight: bold; color: #93c5fd; } /* blue-300 */
-        .definition { font-size: 0.75rem; color: #94a3b8; font-style: italic; } /* slate-400 */
-        .examiner-tip { border-left: 3px solid #ef4444; background: rgba(239, 68, 68, 0.1); padding: 0.5rem; margin-top: 0.5rem; border-radius: 0 0.25rem 0.25rem 0; font-size: 0.8rem; }
+        .keyword { font-weight: 800; color: #60a5fa; text-shadow: 0 0 8px rgba(96, 165, 250, 0.2); }
+        .definition { font-size: 0.75rem; color: #94a3b8; font-style: italic; display: block; margin-top: 0.1rem; }
+        .examiner-tip { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.08); padding: 0.75rem; margin-top: 0.75rem; border-radius: 0 0.5rem 0.5rem 0; font-size: 0.8rem; box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.05); }
+        
+        /* Glassmorphism panel styling */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
-<body class="antialiased text-sm md:text-base">
+<body class="antialiased text-sm">
 
     <!-- 3D Canvas -->
     <div id="canvas-container"></div>
@@ -43,19 +67,23 @@
     <div id="ui-layer">
         
         <!-- Left Sidebar (Controls & Theory) -->
-        <div class="w-full md:w-1/3 lg:w-1/4 h-full bg-slate-900/95 backdrop-blur-md border-r border-slate-700 flex flex-col pointer-events-auto shadow-2xl">
+        <div class="w-full md:w-5/12 lg:w-4/12 xl:w-3/12 h-full glass-panel flex flex-col pointer-events-auto shadow-2xl">
             
-            <div class="p-4 border-b border-slate-700">
-                <h1 class="text-lg font-bold text-blue-400">OCR H555/01</h1>
-                <h2 class="text-xl font-black text-white tracking-tight">Biomechanics 3D (Examiner Focus)</h2>
+            <div class="p-5 border-b border-slate-800">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold tracking-widest text-blue-500 uppercase">OCR H555/01 Spec</span>
+                    <span class="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-semibold rounded border border-blue-500/20">A-Level PE</span>
+                </div>
+                <h2 class="text-2xl font-black text-white tracking-tight">Biomechanics 3D Lab</h2>
             </div>
 
             <!-- Navigation Grid -->
-            <div class="grid grid-cols-2 gap-1 p-2 bg-slate-800 border-b border-slate-700">
-                <button onclick="switchModule(1)" id="btn-mod-1" class="nav-btn active py-2 px-1 text-xs font-bold rounded border border-slate-600 hover:bg-slate-700">Axes & Planes</button>
-                <button onclick="switchModule(2)" id="btn-mod-2" class="nav-btn py-2 px-1 text-xs font-bold rounded border border-slate-600 hover:bg-slate-700">Angular Mom.</button>
-                <button onclick="switchModule(4)" id="btn-mod-4" class="nav-btn py-2 px-1 text-xs font-bold rounded border border-slate-600 hover:bg-slate-700 text-yellow-300">Forces & Stability</button>
-                <button onclick="switchModule(3)" id="btn-mod-3" class="nav-btn py-2 px-1 text-xs font-bold rounded border border-slate-600 hover:bg-slate-700">Magnus Effect</button>
+            <div class="grid grid-cols-2 gap-1.5 p-3 bg-slate-950/40 border-b border-slate-800">
+                <button onclick="switchModule(1)" id="btn-mod-1" class="nav-btn active py-2 px-1 text-xs font-bold rounded-lg border border-slate-800 hover:bg-slate-800/60 text-slate-300">Axes & Planes</button>
+                <button onclick="switchModule(2)" id="btn-mod-2" class="nav-btn py-2 px-1 text-xs font-bold rounded-lg border border-slate-800 hover:bg-slate-800/60 text-slate-300">Angular Mom.</button>
+                <button onclick="switchModule(4)" id="btn-mod-4" class="nav-btn py-2 px-1 text-xs font-bold rounded-lg border border-slate-800 hover:bg-slate-800/60 text-yellow-400">Forces & Stability</button>
+                <button onclick="switchModule(3)" id="btn-mod-3" class="nav-btn py-2 px-1 text-xs font-bold rounded-lg border border-slate-800 hover:bg-slate-800/60 text-slate-300">Magnus Effect</button>
+                <button onclick="switchModule(5)" id="btn-mod-5" class="nav-btn col-span-2 py-2 px-1 text-xs font-bold rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 tracking-wide">Linear Motion & V-T Graphs</button>
             </div>
 
             <!-- Scrollable Content Area -->
@@ -64,12 +92,18 @@
             </div>
         </div>
 
-        <!-- Right Side Overlays (Hint/Stats) -->
-        <div class="flex-1 relative hidden md:block">
-            <div class="absolute bottom-5 right-5 bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-lg pointer-events-auto text-xs text-slate-300 shadow-lg">
+        <!-- Right Side Overlays (Dynamic Legend & Interactions) -->
+        <div class="flex-1 relative hidden md:flex flex-col justify-between p-6 items-end">
+            <!-- Dynamic Legend Panel -->
+            <div id="legend-panel" class="bg-slate-950/90 backdrop-blur border border-slate-800 p-4 rounded-xl text-xs space-y-2.5 w-72 shadow-2xl pointer-events-auto">
+                <!-- Dynamically loaded content based on selected module -->
+            </div>
+
+            <!-- Interactivity Help Overlay -->
+            <div class="bg-slate-950/80 backdrop-blur border border-slate-800 p-3 rounded-lg pointer-events-auto text-xs text-slate-400 shadow-lg">
                 <p>🖱️ <b>Left Click + Drag</b> to rotate camera</p>
                 <p>🔍 <b>Scroll</b> to zoom in/out</p>
-                <p>⚙️ <b>Right Click + Drag</b> to pan</p>
+                <p>⚙️ <b>Right Click + Drag</b> to pan workspace</p>
             </div>
         </div>
     </div>
@@ -80,8 +114,8 @@
     // ==========================================
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0f172a); 
-    scene.fog = new THREE.Fog(0x0f172a, 10, 50);
+    scene.background = new THREE.Color(0x0a0d14); 
+    scene.fog = new THREE.Fog(0x0a0d14, 15, 60);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
     camera.position.set(5, 3, 7);
@@ -90,6 +124,7 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -97,27 +132,31 @@
     controls.dampingFactor = 0.05;
     controls.target.set(0, 1, 0);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
     scene.add(ambientLight);
     
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(5, 10, 5);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.95);
+    dirLight.position.set(8, 15, 8);
     dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
-    const gridHelper = new THREE.GridHelper(20, 20, 0x475569, 0x1e293b);
+    // Glowing Neon Grid Helper
+    const gridHelper = new THREE.GridHelper(30, 30, 0x1d4ed8, 0x1e293b);
     scene.add(gridHelper);
 
     // ==========================================
     // 3D ASSETS CREATION
     // ==========================================
 
-    // 1. HUMANOID MODEL
+    // 1. HUMANOID MODEL (Enhanced with high contrast segments)
     const humanGroup = new THREE.Group();
     humanGroup.position.y = 1.5; 
     scene.add(humanGroup);
 
-    const bodyMat = new THREE.MeshPhongMaterial({ color: 0x94a3b8, shininess: 30 });
+    const bodyMat = new THREE.MeshPhongMaterial({ color: 0x3b82f6, shininess: 50, specular: 0x60a5fa });
+    const limbMat = new THREE.MeshPhongMaterial({ color: 0x1d4ed8, shininess: 40 });
     
     function createLimb(width, length, depth, material, yOffset) {
         const group = new THREE.Group();
@@ -128,85 +167,86 @@
         return group;
     }
 
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), bodyMat);
+    // Torso
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.35), bodyMat);
     torso.castShadow = true;
     humanGroup.add(torso);
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), bodyMat);
-    head.position.y = 0.85;
+    // Head
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 20, 20), bodyMat);
+    head.position.y = 0.88;
     humanGroup.add(head);
 
-    const leftShoulder = new THREE.Group(); leftShoulder.position.set(-0.55, 0.5, 0);
-    const leftUpperArm = createLimb(0.2, 0.6, 0.2, bodyMat, -0.3); leftShoulder.add(leftUpperArm);
+    // Arms
+    const leftShoulder = new THREE.Group(); leftShoulder.position.set(-0.5, 0.5, 0);
+    const leftUpperArm = createLimb(0.18, 0.6, 0.18, limbMat, -0.3); leftShoulder.add(leftUpperArm);
     const leftElbow = new THREE.Group(); leftElbow.position.set(0, -0.6, 0);
-    const leftLowerArm = createLimb(0.15, 0.5, 0.15, bodyMat, -0.25); leftElbow.add(leftLowerArm);
+    const leftLowerArm = createLimb(0.14, 0.5, 0.14, limbMat, -0.25); leftElbow.add(leftLowerArm);
     leftUpperArm.add(leftElbow); humanGroup.add(leftShoulder);
 
-    const rightShoulder = new THREE.Group(); rightShoulder.position.set(0.55, 0.5, 0);
-    const rightUpperArm = createLimb(0.2, 0.6, 0.2, bodyMat, -0.3); rightShoulder.add(rightUpperArm);
+    const rightShoulder = new THREE.Group(); rightShoulder.position.set(0.5, 0.5, 0);
+    const rightUpperArm = createLimb(0.18, 0.6, 0.18, limbMat, -0.3); rightShoulder.add(rightUpperArm);
     const rightElbow = new THREE.Group(); rightElbow.position.set(0, -0.6, 0);
-    const rightLowerArm = createLimb(0.15, 0.5, 0.15, bodyMat, -0.25); rightElbow.add(rightLowerArm);
+    const rightLowerArm = createLimb(0.14, 0.5, 0.14, limbMat, -0.25); rightElbow.add(rightLowerArm);
     rightUpperArm.add(rightElbow); humanGroup.add(rightShoulder);
 
-    // Legs designed to spread for stability module
+    // Legs
     const leftHip = new THREE.Group(); leftHip.position.set(-0.25, -0.6, 0);
-    const leftUpperLeg = createLimb(0.25, 0.7, 0.25, bodyMat, -0.35); leftHip.add(leftUpperLeg);
+    const leftUpperLeg = createLimb(0.22, 0.7, 0.22, limbMat, -0.35); leftHip.add(leftUpperLeg);
     const leftKnee = new THREE.Group(); leftKnee.position.set(0, -0.7, 0);
-    const leftLowerLeg = createLimb(0.2, 0.6, 0.2, bodyMat, -0.3); leftKnee.add(leftLowerLeg);
+    const leftLowerLeg = createLimb(0.18, 0.6, 0.18, limbMat, -0.3); leftKnee.add(leftLowerLeg);
     leftUpperLeg.add(leftKnee); humanGroup.add(leftHip);
 
     const rightHip = new THREE.Group(); rightHip.position.set(0.25, -0.6, 0);
-    const rightUpperLeg = createLimb(0.25, 0.7, 0.25, bodyMat, -0.35); rightHip.add(rightUpperLeg);
+    const rightUpperLeg = createLimb(0.22, 0.7, 0.22, limbMat, -0.35); rightHip.add(rightUpperLeg);
     const rightKnee = new THREE.Group(); rightKnee.position.set(0, -0.7, 0);
-    const rightLowerLeg = createLimb(0.2, 0.6, 0.2, bodyMat, -0.3); rightKnee.add(rightLowerLeg);
+    const rightLowerLeg = createLimb(0.18, 0.6, 0.18, limbMat, -0.3); rightKnee.add(rightLowerLeg);
     rightUpperLeg.add(rightKnee); humanGroup.add(rightHip);
 
-    // Center of Mass (CoM) indicator
-    const comMarker = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({color: 0xffe814}));
+    // Center of Mass (CoM) neon marker
+    const comMarker = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 16), new THREE.MeshBasicMaterial({color: 0xffe814}));
     humanGroup.add(comMarker);
 
     // --- MODULE 1: AXES & PLANES ---
     const axisGroup = new THREE.Group();
     humanGroup.add(axisGroup);
     
-    // Axes Lines
-    const matLong = new THREE.LineBasicMaterial({ color: 0x22c55e, linewidth: 3 }); // Green
-    const matTrans = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 3 }); // Red
-    const matFront = new THREE.LineBasicMaterial({ color: 0x3b82f6, linewidth: 3 }); // Blue
+    // Colorful Glowing Axes
+    const matLong = new THREE.LineBasicMaterial({ color: 0x22c55e, linewidth: 4 }); // Longitudinal (Green)
+    const matTrans = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 4 }); // Transverse (Red)
+    const matFront = new THREE.LineBasicMaterial({ color: 0x3b82f6, linewidth: 4 }); // Frontal (Blue)
+    
     const lineLong = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -3, 0), new THREE.Vector3(0, 3, 0)]), matLong);
     const lineTrans = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3, 0, 0), new THREE.Vector3(3, 0, 0)]), matTrans);
     const lineFront = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -3), new THREE.Vector3(0, 0, 3)]), matFront);
     axisGroup.add(lineLong, lineTrans, lineFront);
 
-    // Planes of Movement (Transparent panels)
-    const planeGeo = new THREE.PlaneGeometry(4, 4);
-    const planeMatFrontal = new THREE.MeshBasicMaterial({color: 0x3b82f6, transparent: true, opacity: 0.2, side: THREE.DoubleSide}); // Frontal Plane
-    const planeMatSagittal = new THREE.MeshBasicMaterial({color: 0xef4444, transparent: true, opacity: 0.2, side: THREE.DoubleSide}); // Sagittal Plane
-    const planeMatTransverse = new THREE.MeshBasicMaterial({color: 0x22c55e, transparent: true, opacity: 0.2, side: THREE.DoubleSide}); // Transverse Plane
+    // High Visual Planes
+    const planeGeo = new THREE.PlaneGeometry(3.6, 3.6);
+    const planeMatFrontal = new THREE.MeshBasicMaterial({color: 0x3b82f6, transparent: true, opacity: 0.15, side: THREE.DoubleSide, depthWrite: false});
+    const planeMatSagittal = new THREE.MeshBasicMaterial({color: 0xef4444, transparent: true, opacity: 0.15, side: THREE.DoubleSide, depthWrite: false});
+    const planeMatTransverse = new THREE.MeshBasicMaterial({color: 0x22c55e, transparent: true, opacity: 0.15, side: THREE.DoubleSide, depthWrite: false});
 
     const frontalPlane = new THREE.Mesh(planeGeo, planeMatFrontal);
-    const sagittalPlane = new THREE.Mesh(planeGeo, planeMatSagittal);
-    sagittalPlane.rotation.y = Math.PI / 2;
-    const transversePlane = new THREE.Mesh(planeGeo, planeMatTransverse);
-    transversePlane.rotation.x = Math.PI / 2;
-    
+    const sagittalPlane = new THREE.Mesh(planeGeo, planeMatSagittal); sagittalPlane.rotation.y = Math.PI / 2;
+    const transversePlane = new THREE.Mesh(planeGeo, planeMatTransverse); transversePlane.rotation.x = Math.PI / 2;
     axisGroup.add(frontalPlane, sagittalPlane, transversePlane);
     frontalPlane.visible = sagittalPlane.visible = transversePlane.visible = false;
 
-    // --- MODULE 4: FORCES & STABILITY ---
+    // --- MODULE 4: STABILITY & FBD ---
     const stabilityGroup = new THREE.Group();
     scene.add(stabilityGroup);
 
-    // Base of Support Polygon (on the ground)
+    // Neon Base of Support
     const bosGeo = new THREE.PlaneGeometry(1, 0.6);
-    const bosMat = new THREE.MeshBasicMaterial({color: 0xeab308, transparent: true, opacity: 0.4, side: THREE.DoubleSide});
+    const bosMat = new THREE.MeshBasicMaterial({color: 0xeab308, transparent: true, opacity: 0.45, side: THREE.DoubleSide});
     const bosMesh = new THREE.Mesh(bosGeo, bosMat);
     bosMesh.rotation.x = -Math.PI / 2;
-    bosMesh.position.y = 0.01; // Just above floor
+    bosMesh.position.y = 0.01; 
     stabilityGroup.add(bosMesh);
 
-    // Line of Gravity (from CoM straight down)
-    const logMat = new THREE.LineDashedMaterial({ color: 0xffe814, dashSize: 0.2, gapSize: 0.1 });
+    // Neon Line of Gravity
+    const logMat = new THREE.LineDashedMaterial({ color: 0xffe814, dashSize: 0.15, gapSize: 0.1 });
     const logGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(0, 0, 0)]);
     const logLine = new THREE.Line(logGeo, logMat);
     logLine.computeLineDistances();
@@ -216,28 +256,27 @@
     const weightArrow = new THREE.ArrowHelper(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 1.5, 0), 1.5, 0xef4444, 0.3, 0.2);
     const reactLeftArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-0.25, 0, 0), 0.75, 0x22c55e, 0.2, 0.15);
     const reactRightArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0.25, 0, 0), 0.75, 0x22c55e, 0.2, 0.15);
-    
     stabilityGroup.add(weightArrow, reactLeftArrow, reactRightArrow);
     weightArrow.visible = reactLeftArrow.visible = reactRightArrow.visible = false; 
 
-    // --- MODULE 3: MAGNUS EFFECT ---
+    // --- MODULE 3: MAGNUS EFFECT & TRAJECTORY ---
     const magnusGroup = new THREE.Group();
     magnusGroup.position.y = 1.5;
     scene.add(magnusGroup);
     
+    // Stylized ball with clean high-contrast texture mapping
     const ballGeo = new THREE.SphereGeometry(0.8, 32, 16);
-    const canvas = document.createElement('canvas');
-    canvas.width = 256; canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#eab308'; ctx.fillRect(0,0,256,256);
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 110, 256, 36);
-    const ballTex = new THREE.CanvasTexture(canvas);
-    ballTex.wrapS = THREE.RepeatWrapping; ballTex.wrapT = THREE.RepeatWrapping; ballTex.repeat.set(2, 1);
-    const ballMat = new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.8 });
+    const canvasB = document.createElement('canvas');
+    canvasB.width = 256; canvasB.height = 256;
+    const ctxB = canvasB.getContext('2d');
+    ctxB.fillStyle = '#10b981'; ctxB.fillRect(0,0,256,256); // bright emerald
+    ctxB.fillStyle = '#ffffff'; ctxB.fillRect(0, 110, 256, 36);
+    const ballTex = new THREE.CanvasTexture(canvasB);
+    const ballMat = new THREE.MeshStandardMaterial({ map: ballTex, roughness: 0.5 });
     const ball = new THREE.Mesh(ballGeo, ballMat);
     magnusGroup.add(ball);
 
-    // Applied Force (Strike) Arrow - demonstrates Eccentric Force
+    // Applied Force Strike Arrow
     const strikeArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-2.2, 0, 0), 1.2, 0xd946ef, 0.4, 0.3);
     magnusGroup.add(strikeArrow);
 
@@ -258,8 +297,42 @@
     const forceArrow = new THREE.ArrowHelper(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0,0,0), 2, 0xef4444, 0.5, 0.5);
     magnusGroup.add(forceArrow);
 
+    // Interactive Trajectory Line showing the curved path path of the ball
+    const trajectoryMat = new THREE.LineDashedMaterial({ color: 0x60a5fa, dashSize: 0.1, gapSize: 0.05 });
+    const trajectoryGeo = new THREE.BufferGeometry();
+    const trajectoryLine = new THREE.Line(trajectoryGeo, trajectoryMat);
+    magnusGroup.add(trajectoryLine);
+
+    // --- MODULE 5: LINEAR MOTION & TRACK ---
+    const trackGroup = new THREE.Group();
+    scene.add(trackGroup);
+    trackGroup.visible = false;
+
+    // Runway / Sprint Track mesh
+    const trackGeo = new THREE.BoxGeometry(16, 0.1, 2);
+    const trackMat = new THREE.MeshPhongMaterial({ color: 0x1e293b });
+    const trackMesh = new THREE.Mesh(trackGeo, trackMat);
+    trackMesh.position.set(0, -0.05, 0);
+    trackMesh.receiveShadow = true;
+    trackGroup.add(trackMesh);
+
+    // Neon lane lines
+    const lineGeo = new THREE.BoxGeometry(16, 0.02, 0.05);
+    const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const laneLine1 = new THREE.Mesh(lineGeo, lineMat); laneLine1.position.set(0, 0.01, 0.8);
+    const laneLine2 = new THREE.Mesh(lineGeo, lineMat); laneLine2.position.set(0, 0.01, -0.8);
+    trackGroup.add(laneLine1, laneLine2);
+
+    // Distance markers
+    for (let i = -7; i <= 7; i += 3.5) {
+        const markerGeo = new THREE.BoxGeometry(0.1, 0.05, 2);
+        const markerMesh = new THREE.Mesh(markerGeo, lineMat);
+        markerMesh.position.set(i, 0.01, 0);
+        trackGroup.add(markerMesh);
+    }
+
     // ==========================================
-    // APP STATE & LOGIC
+    // APP STATE & SYSTEM CONFIG
     // ==========================================
     let currentModule = 1;
     let activeAxis = 'none'; 
@@ -272,53 +345,247 @@
     let currentMI = maxMI;
     let angularVelocity = angularMomentum / currentMI;
     
-    // Magnus Effect State
+    // Magnus State
     let strikeOffset = 0; 
 
+    // Linear Motion State
+    let sprinterTime = 0;
+    let sprinterVelocity = 0;
+    let sprinterPos = -7; 
+    let linearMotionPhase = 'acceleration'; 
+    let isSprinterRunning = false;
+    let sprinterGaitPhase = 0; // State-integrated phase accumulator for perfect gait speed integration
+
     // ==========================================
-    // UI CONTENT TEMPLATES (Examiner Focused)
+    // MODULE 5: REAL-TIME GRAPH CONTROLLER
+    // ==========================================
+    function drawVelocityTimeGraph() {
+        const canvas = document.getElementById('vt-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width;
+        const H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        // Draw Axes
+        ctx.strokeStyle = '#4b5563';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(40, 10);
+        ctx.lineTo(40, H - 30); // Y-axis
+        ctx.lineTo(W - 15, H - 30); // X-axis
+        ctx.stroke();
+
+        // Labels
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px Inter';
+        ctx.fillText('Velocity (m/s)', 10, 20);
+        ctx.fillText('Time (s)', W - 50, H - 15);
+
+        // Helper curve formula:
+        // 0s -> 3s Acceleration (Curve up)
+        // 3s -> 6s Constant Velocity (Plateau)
+        // 6s -> 9s Deceleration (Slowing down)
+        const getVForT = (t) => {
+            if (t < 3) return (t / 3) * 8; 
+            if (t < 6) return 8; 
+            if (t <= 9) return 8 - ((t - 6) / 3) * 8; 
+            return 0;
+        };
+
+        ctx.strokeStyle = '#10b981'; // Neon green path
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let x = 0; x <= 100; x++) {
+            const t = (x / 100) * 9;
+            const v = getVForT(t);
+            const graphX = 40 + (t / 9) * (W - 65);
+            const graphY = (H - 30) - (v / 10) * (H - 50);
+            if (x === 0) ctx.moveTo(graphX, graphY);
+            else ctx.lineTo(graphX, graphY);
+        }
+        ctx.stroke();
+
+        // Highlight regions
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.05)';
+        ctx.fillRect(40, 10, (3/9)*(W-65), H-40); // Accel area
+        ctx.fillStyle = 'rgba(234, 179, 8, 0.05)';
+        ctx.fillRect(40 + (3/9)*(W-65), 10, (3/9)*(W-65), H-40); // Cruise area
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.05)';
+        ctx.fillRect(40 + (6/9)*(W-65), 10, (3/9)*(W-65), H-40); // Decel area
+
+        // Draw synchronized glowing dot for current time
+        const currentV = getVForT(sprinterTime);
+        const dotX = 40 + (sprinterTime / 9) * (W - 65);
+        const dotY = (H - 30) - (currentV / 10) * (H - 50);
+
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#10b981';
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0; // reset
+    }
+
+    // ==========================================
+    // DYNAMIC LEGEND SYSTEM
+    // ==========================================
+    function updateLegend(mod) {
+        const legend = document.getElementById('legend-panel');
+        if (!legend) return;
+        
+        let html = ``;
+        if (mod === 1) {
+            html = `
+                <h4 class="font-bold text-slate-200 border-b border-slate-800 pb-1.5 mb-2 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-blue-500"></span> Visual Key: Axes & Planes
+                </h4>
+                <div class="flex items-center gap-3">
+                    <span class="w-3.5 h-1.5 bg-[#ef4444] block"></span>
+                    <span class="text-slate-300">Transverse Axis / Sagittal Plane (Somersault)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3.5 h-1.5 bg-[#22c55e] block"></span>
+                    <span class="text-slate-300">Longitudinal Axis / Transverse Plane (Spin)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3.5 h-1.5 bg-[#3b82f6] block"></span>
+                    <span class="text-slate-300">Frontal Axis / Frontal Plane (Cartwheel)</span>
+                </div>
+            `;
+        } else if (mod === 2) {
+            html = `
+                <h4 class="font-bold text-slate-200 border-b border-slate-800 pb-1.5 mb-2 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span> Visual Key: Angular Momentum
+                </h4>
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-full bg-[#ffe814] block"></span>
+                    <span class="text-slate-300">Centre of Mass</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-sm bg-[#ef4444] block"></span>
+                    <span class="text-slate-300">High Moment of Inertia (Straight Shape)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-sm bg-[#10b981] block"></span>
+                    <span class="text-slate-300">High Angular Velocity (Tuck Shape)</span>
+                </div>
+            `;
+        } else if (mod === 3) {
+            html = `
+                <h4 class="font-bold text-slate-200 border-b border-slate-800 pb-1.5 mb-2 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-fuchsia-500"></span> Visual Key: Magnus Effect
+                </h4>
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-sm bg-fuchsia-500 block"></span>
+                    <span class="text-slate-300">Applied Eccentric Force Strike</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3.5 h-1.5 bg-blue-400 block border-t border-dashed"></span>
+                    <span class="text-slate-300">Flight Path Deviation Curve</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-sm bg-red-500 block"></span>
+                    <span class="text-slate-300">High Pressure Area (Opposed Flow)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-sm bg-emerald-500 block"></span>
+                    <span class="text-slate-300">Low Pressure Area (Helper Flow)</span>
+                </div>
+            `;
+        } else if (mod === 4) {
+            html = `
+                <h4 class="font-bold text-slate-200 border-b border-slate-800 pb-1.5 mb-2 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-yellow-500"></span> Visual Key: Forces & Stability
+                </h4>
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-full bg-[#ffe814] block"></span>
+                    <span class="text-slate-300">Centre of Mass</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3.5 h-1.5 bg-yellow-400 block border-t border-dashed"></span>
+                    <span class="text-slate-300">Line of Gravity</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3.5 h-1.5 bg-[#eab308] opacity-60 block"></span>
+                    <span class="text-slate-300">Base of Support (Contact Area)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-sm bg-red-500 block"></span>
+                    <span class="text-slate-300">Weight (Always starts at CoM)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-sm bg-green-500 block"></span>
+                    <span class="text-slate-300">Reaction Force (Starts at feet base)</span>
+                </div>
+            `;
+        } else if (mod === 5) {
+            html = `
+                <h4 class="font-bold text-slate-200 border-b border-slate-800 pb-1.5 mb-2 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Visual Key: Linear Motion
+                </h4>
+                <div class="flex items-center gap-3">
+                    <span class="w-3.5 h-2 bg-[#3b82f6] opacity-35 block"></span>
+                    <span class="text-slate-300">Acceleration (Positive Gradient)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3.5 h-2 bg-[#eab308] opacity-35 block"></span>
+                    <span class="text-slate-300">Constant Velocity (Zero Gradient)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3.5 h-2 bg-[#ef4444] opacity-35 block"></span>
+                    <span class="text-slate-300">Deceleration (Negative Gradient)</span>
+                </div>
+            `;
+        }
+        legend.innerHTML = html;
+    }
+
+    // ==========================================
+    // UI CONTENT INJECTION ENGINE
     // ==========================================
     const uiContent = {
         1: `
-            <h3 class="text-lg font-bold text-white mb-2">I. Axes vs. Planes of Movement</h3>
+            <h3 class="text-base font-bold text-white mb-2">I. Axes vs. Planes of Movement</h3>
             <div class="examiner-tip mb-4">
                 <b>Examiner Tip:</b> Candidates frequently confuse Axes with Planes. Remember: An <span class="keyword">Axis of Rotation</span> <span class="definition">[imaginary line a body rotates around]</span> pairs with a <span class="keyword">Plane of Movement</span> <span class="definition">[flat surface motion occurs along]</span>.
             </div>
             
             <div class="space-y-3">
-                <div class="p-3 bg-slate-800 rounded border border-slate-700">
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 hover:border-slate-700 transition">
                     <button onclick="setAxis('transverse')" class="w-full text-left font-bold text-red-400 hover:text-red-300 flex justify-between items-center">
                         <span>Transverse Axis (Red)</span>
-                        <span class="text-xs bg-slate-700 px-2 py-1 rounded">Play</span>
+                        <span class="text-xs bg-slate-800 px-2 py-1 rounded">Visualise</span>
                     </button>
                     <p class="text-xs text-slate-400 mt-2">Motion occurs ALONG the <b>Sagittal Plane</b> (splitting left/right). <br><i>Ex: Somersault, forward roll.</i></p>
                 </div>
 
-                <div class="p-3 bg-slate-800 rounded border border-slate-700">
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 hover:border-slate-700 transition">
                     <button onclick="setAxis('longitudinal')" class="w-full text-left font-bold text-green-400 hover:text-green-300 flex justify-between items-center">
                         <span>Longitudinal Axis (Green)</span>
-                        <span class="text-xs bg-slate-700 px-2 py-1 rounded">Play</span>
+                        <span class="text-xs bg-slate-800 px-2 py-1 rounded">Visualise</span>
                     </button>
                     <p class="text-xs text-slate-400 mt-2">Motion occurs ALONG the <b>Transverse Plane</b> (splitting top/bottom). <br><i>Ex: Ice skater spin, 360 twist.</i></p>
                 </div>
 
-                <div class="p-3 bg-slate-800 rounded border border-slate-700">
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 hover:border-slate-700 transition">
                     <button onclick="setAxis('frontal')" class="w-full text-left font-bold text-blue-400 hover:text-blue-300 flex justify-between items-center">
                         <span>Frontal Axis (Blue)</span>
-                        <span class="text-xs bg-slate-700 px-2 py-1 rounded">Play</span>
+                        <span class="text-xs bg-slate-800 px-2 py-1 rounded">Visualise</span>
                     </button>
                     <p class="text-xs text-slate-400 mt-2">Motion occurs ALONG the <b>Frontal Plane</b> (splitting front/back). <br><i>Ex: Cartwheel.</i></p>
                 </div>
             </div>
         `,
         2: `
-            <h3 class="text-lg font-bold text-white mb-2">II. Conservation of Angular Momentum</h3>
+            <h3 class="text-base font-bold text-white mb-2">II. Conservation of Angular Momentum</h3>
             <div class="examiner-tip mb-4">
                 <b>Examiner Tip:</b> Do not use "Centre of Mass" here. Moment of Inertia depends on how mass is distributed from the <b>Axis of Rotation</b>.
             </div>
             
-            <div class="p-4 bg-slate-800 rounded border border-slate-700 mb-4">
-                <label class="block text-sm font-bold text-white mb-2">Gymnast Shape (Tuck Factor)</label>
+            <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-800 mb-4">
+                <label class="block text-xs font-bold text-slate-300 mb-2">Gymnast Shape (Tuck Factor)</label>
                 <div class="flex justify-between text-xs text-slate-400 mb-1">
                     <span>Layout (High MI)</span>
                     <span>Tuck (Low MI)</span>
@@ -328,53 +595,53 @@
 
             <!-- Gauges -->
             <div class="space-y-4">
-                <div>
+                <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800">
                     <div class="flex justify-between text-xs mb-1">
                         <span class="font-bold text-purple-400">Angular Momentum (AM)</span>
                         <span id="val-am" class="font-mono">500</span>
                     </div>
-                    <div class="w-full bg-slate-700 rounded h-2">
+                    <div class="w-full bg-slate-800 rounded h-2">
                         <div class="bg-purple-500 h-2 rounded w-full gauge-fill"></div>
                     </div>
                 </div>
 
-                <div>
+                <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800">
                     <div class="flex justify-between text-xs mb-1">
                         <span class="font-bold text-red-400">Moment of Inertia (MI)</span>
                         <span id="val-mi" class="font-mono">100</span>
                     </div>
-                    <div class="w-full bg-slate-700 rounded h-2">
+                    <div class="w-full bg-slate-800 rounded h-2">
                         <div id="bar-mi" class="bg-red-500 h-2 rounded w-full gauge-fill"></div>
                     </div>
-                    <p class="text-[10px] text-slate-500 mt-1"><span class="keyword">MI</span> <span class="definition">[Resistance to rotation]</span> decreases as mass nears axis.</p>
+                    <p class="text-[10px] text-slate-400 mt-1"><span class="keyword">MI</span> <span class="definition">[Resistance to rotation]</span> decreases as mass nears axis.</p>
                 </div>
 
-                <div>
+                <div class="bg-slate-900/40 p-3 rounded-lg border border-slate-800">
                     <div class="flex justify-between text-xs mb-1">
                         <span class="font-bold text-green-400">Angular Velocity (AV)</span>
                         <span id="val-av" class="font-mono">5.0</span>
                     </div>
-                    <div class="w-full bg-slate-700 rounded h-2 relative overflow-hidden">
+                    <div class="w-full bg-slate-800 rounded h-2 relative overflow-hidden">
                         <div id="bar-av" class="bg-green-500 h-2 rounded w-[25%] gauge-fill"></div>
                     </div>
-                    <p class="text-[10px] text-slate-500 mt-1"><span class="keyword">AV</span> <span class="definition">[Rate of rotation]</span> increases proportionally.</p>
+                    <p class="text-[10px] text-slate-400 mt-1"><span class="keyword">AV</span> <span class="definition">[Rate of rotation]</span> increases proportionally.</p>
                 </div>
             </div>
         `,
         4: `
-            <h3 class="text-lg font-bold text-white mb-2">IV. Forces & Stability</h3>
+            <h3 class="text-base font-bold text-white mb-2">IV. Forces & Stability</h3>
             <div class="examiner-tip mb-4">
                 <b>Examiner Tip:</b> Marks are lost when Free Body Diagram arrows start in the wrong place. Weight MUST start exactly at the CoM. Reaction Force MUST start at the ground contact point.
             </div>
 
-            <div class="p-4 bg-slate-800 rounded border border-slate-700 mb-4">
-                <label class="block text-sm font-bold text-white mb-2">Adjust Stance for Stability</label>
+            <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-800 mb-4">
+                <label class="block text-xs font-bold text-slate-300 mb-2">Adjust Stance for Stability</label>
                 <input type="range" min="0" max="1" step="0.01" value="0" oninput="updateStance(this.value)" class="w-full">
                 <p class="text-xs text-slate-400 mt-2">Notice the <span class="keyword">Base of Support</span> <span class="definition">[area of contact]</span> widening and the CoM dropping. "Number of points of contact" does NOT gain marks; "size/area of BoS" does.</p>
             </div>
 
-            <div class="p-3 bg-slate-800 rounded border border-slate-700 mb-4">
-                <button onclick="toggleFBD()" id="btn-fbd" class="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold text-white transition">Show Free Body Diagram</button>
+            <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 mb-4">
+                <button onclick="toggleFBD()" id="btn-fbd" class="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-white transition">Show Free Body Diagram</button>
                 <div id="fbd-desc" class="hidden mt-3 text-xs text-slate-300 space-y-2">
                     <p><b class="text-red-400">Weight Arrow:</b> Starts strictly at the <span class="keyword">Centre of Mass</span> <span class="definition">[point of even mass distribution]</span>.</p>
                     <p><b class="text-green-400">Reaction Arrow:</b> Starts at the feet.</p>
@@ -383,23 +650,54 @@
             </div>
         `,
         3: `
-            <h3 class="text-lg font-bold text-white mb-2">III. Fluid Mechanics & Spin</h3>
+            <h3 class="text-base font-bold text-white mb-2">III. Fluid Mechanics & Spin</h3>
             <p class="text-slate-400 mb-4 text-xs">The <span class="keyword">Magnus Effect</span> <span class="definition">[force created by pressure differences causing deviation]</span> occurs when an eccentric force imparts spin.</p>
             
-            <div class="p-4 bg-slate-800 rounded border border-slate-700 mb-4">
-                <label class="block text-sm font-bold text-fuchsia-400 mb-2">Point of Force Application</label>
+            <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-800 mb-4">
+                <label class="block text-xs font-bold text-fuchsia-400 mb-2">Point of Force Application</label>
                 <div class="flex justify-between text-[10px] text-slate-400 mb-1">
                     <span>Bottom (Backspin)</span>
                     <span>Center (No Spin)</span>
                     <span>Top (Topspin)</span>
                 </div>
-                <!-- Slider ranges from -1 (bottom) to 1 (top) -->
                 <input type="range" min="-1" max="1" step="0.1" value="0" oninput="updateStrikePoint(this.value)" class="w-full">
                 <p class="text-xs text-slate-400 mt-2">Move the slider to apply an <span class="keyword">Eccentric Force</span> <span class="definition">[force applied outside the centre of mass]</span>.</p>
             </div>
 
-            <div id="magnus-explanation" class="p-4 bg-slate-800 rounded border border-slate-700 text-sm">
+            <div id="magnus-explanation" class="p-4 bg-slate-900/60 rounded-xl border border-slate-800 text-sm">
                 <!-- Injected via JS based on slider -->
+            </div>
+        `,
+        5: `
+            <h3 class="text-base font-bold text-emerald-400 mb-2">V. Linear Motion & V-T Graphs</h3>
+            <p class="text-slate-400 mb-4 text-xs">
+                Understand the difference between constant acceleration, constant velocity (flat line), and deceleration.
+            </p>
+
+            <div class="space-y-4 mb-4">
+                <div class="flex gap-2">
+                    <button id="btn-sprint-play" onclick="toggleSprinter()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition">
+                        Start Sprinter
+                    </button>
+                    <button onclick="resetSprinter()" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg text-xs transition">
+                        Reset
+                    </button>
+                </div>
+                
+                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                    <h4 class="text-xs font-bold text-slate-300 mb-2 flex justify-between">
+                        <span>Velocity-Time Graph</span>
+                        <span id="sprint-phase-label" class="text-emerald-400 font-mono text-[10px] uppercase">Static</span>
+                    </h4>
+                    <canvas id="vt-canvas" width="280" height="150" class="w-full bg-slate-900 rounded"></canvas>
+                </div>
+            </div>
+
+            <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-2">
+                <h4 class="font-bold text-emerald-300">OCR Spec Core Concepts:</h4>
+                <p>📈 <b class="text-blue-400">Gradient:</b> The steepness of the line represents <span class="keyword">Acceleration</span> <span class="definition">[rate of change in velocity]</span>.</p>
+                <p>📏 <b class="text-blue-400">Area Under Curve:</b> Represents displacement (total distance covered).</p>
+                <p>🛑 <b class="text-blue-400">Zero Net Force:</b> Occurs when constant velocity is reached (Forces are perfectly balanced).</p>
             </div>
         `
     };
@@ -407,11 +705,9 @@
     // ==========================================
     // INTERACTION FUNCTIONS
     // ==========================================
-    const moduleContainer = document.getElementById('module-content');
-
     function resetHumanPose() {
         humanGroup.rotation.set(0,0,0);
-        humanGroup.position.y = 1.5;
+        humanGroup.position.set(0, 1.5, 0);
         leftShoulder.rotation.set(0,0,0); rightShoulder.rotation.set(0,0,0);
         leftHip.rotation.set(0,0,0); rightHip.rotation.set(0,0,0);
         leftKnee.rotation.set(0,0,0); rightKnee.rotation.set(0,0,0);
@@ -427,36 +723,46 @@
         currentModule = mod;
         
         document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`btn-mod-${mod}`).classList.add('active');
+        const activeBtn = document.getElementById(`btn-mod-${mod}`);
+        if (activeBtn) activeBtn.classList.add('active');
         
         moduleContainer.innerHTML = uiContent[mod];
 
         activeAxis = 'none';
         resetHumanPose();
+        resetSprinter();
+        updateLegend(mod);
 
         if (mod === 1) {
             humanGroup.visible = true; axisGroup.visible = true;
-            stabilityGroup.visible = false; magnusGroup.visible = false;
+            stabilityGroup.visible = false; magnusGroup.visible = false; trackGroup.visible = false;
             camera.position.set(5, 3, 7);
         } 
         else if (mod === 2) {
             humanGroup.visible = true; axisGroup.visible = false;
-            stabilityGroup.visible = false; magnusGroup.visible = false;
+            stabilityGroup.visible = false; magnusGroup.visible = false; trackGroup.visible = false;
             camera.position.set(6, 2, 0); 
             setAxis('transverse'); 
             updateTuck(0); 
         }
         else if (mod === 4) {
             humanGroup.visible = true; axisGroup.visible = false;
-            stabilityGroup.visible = true; magnusGroup.visible = false;
+            stabilityGroup.visible = true; magnusGroup.visible = false; trackGroup.visible = false;
             camera.position.set(0, 2, 6);
             updateStance(0);
         }
         else if (mod === 3) {
             humanGroup.visible = false; axisGroup.visible = false;
-            stabilityGroup.visible = false; magnusGroup.visible = true;
+            stabilityGroup.visible = false; magnusGroup.visible = true; trackGroup.visible = false;
             camera.position.set(0, 0, 6);
-            updateStrikePoint(0); // Initialize at 0 (No Spin)
+            updateStrikePoint(0); 
+        }
+        else if (mod === 5) {
+            humanGroup.visible = true; axisGroup.visible = false;
+            stabilityGroup.visible = false; magnusGroup.visible = false; trackGroup.visible = true;
+            camera.position.set(0, 3, 8);
+            controls.target.set(0, 1, 0);
+            drawVelocityTimeGraph();
         }
     };
 
@@ -498,8 +804,8 @@
             document.getElementById('val-av').innerText = angularVelocity.toFixed(1);
             const maxAV = angularMomentum / minMI;
             document.getElementById('bar-av').style.width = `${(angularVelocity / maxAV) * 100}%`;
-            document.getElementById('bar-mi').style.backgroundColor = tuckFactor > 0.5 ? '#22c55e' : '#ef4444';
-            document.getElementById('bar-av').style.backgroundColor = tuckFactor > 0.5 ? '#ef4444' : '#22c55e'; 
+            document.getElementById('bar-mi').style.backgroundColor = tuckFactor > 0.5 ? '#10b981' : '#ef4444';
+            document.getElementById('bar-av').style.backgroundColor = tuckFactor > 0.5 ? '#ef4444' : '#10b981'; 
         }
     };
 
@@ -525,12 +831,12 @@
         
         if(showFBD) {
             btn.innerText = "Hide Free Body Diagram";
-            btn.classList.replace('bg-slate-700', 'bg-blue-600');
+            btn.classList.replace('bg-slate-800', 'bg-blue-600');
             desc.classList.remove('hidden');
             updateForcesPosition();
         } else {
             btn.innerText = "Show Free Body Diagram";
-            btn.classList.replace('bg-blue-600', 'bg-slate-700');
+            btn.classList.replace('bg-blue-600', 'bg-slate-800');
             desc.classList.add('hidden');
         }
     };
@@ -548,13 +854,28 @@
     // Mod 3: Interactive Magnus Effect
     window.updateStrikePoint = function(val) {
         strikeOffset = parseFloat(val);
-        // Move the visual strike arrow up and down (radius of ball is 0.8)
         strikeArrow.position.y = strikeOffset * 0.8;
 
         const expDiv = document.getElementById('magnus-explanation');
 
+        // Dynamic trajectory plotting points based on spin state
+        const points = [];
+        const startX = -3;
+        for (let i = 0; i < 40; i++) {
+            const x = startX + (i * 0.15);
+            // Parabolic curve with offset deviation
+            let y = 0;
+            if (strikeOffset > 0.1) {
+                y = -Math.pow(x + 1, 2) * 0.08 * strikeOffset; // Curves Down
+            } else if (strikeOffset < -0.1) {
+                y = Math.pow(x + 1, 2) * 0.08 * Math.abs(strikeOffset); // Curves Up
+            }
+            points.push(new THREE.Vector3(x, y, 0));
+        }
+        trajectoryGeo.setFromPoints(points);
+        trajectoryLine.computeLineDistances();
+
         if (strikeOffset > 0.1) {
-            // TOPSPIN: Striking above the center of mass
             forceArrow.visible = true;
             forceArrow.setDirection(new THREE.Vector3(0, -1, 0)); 
             forceArrow.setColor(new THREE.Color(0xef4444)); 
@@ -563,28 +884,26 @@
                 <ul class="list-disc pl-4 text-xs text-slate-300 space-y-1">
                     <li><b>Top of ball:</b> Airflow opposes spin direction &rarr; High Pressure, Low Velocity.</li>
                     <li><b>Bottom of ball:</b> Airflow moves with spin &rarr; Low Pressure, High Velocity.</li>
-                    <li><b>Result:</b> <span class="keyword">Pressure Gradient</span> forces the ball <b>DOWNWARDS</b>.</li>
+                    <li><b>Result:</b> Pressure Gradient forces the ball <b>DOWNWARDS</b>.</li>
                 </ul>`;
             topAir1.setColor(0xef4444); topAir2.setColor(0xef4444); 
-            botAir1.setColor(0x22c55e); botAir2.setColor(0x22c55e); 
+            botAir1.setColor(0x10b981); botAir2.setColor(0x10b981); 
 
         } else if (strikeOffset < -0.1) {
-            // BACKSPIN: Striking below the center of mass
             forceArrow.visible = true;
             forceArrow.setDirection(new THREE.Vector3(0, 1, 0)); 
-            forceArrow.setColor(new THREE.Color(0x22c55e)); 
+            forceArrow.setColor(new THREE.Color(0x10b981)); 
             expDiv.innerHTML = `
-                <h4 class="font-bold text-green-400 mb-1">Backspin (Eccentric Force Below CoM)</h4>
+                <h4 class="font-bold text-emerald-400 mb-1">Backspin (Eccentric Force Below CoM)</h4>
                 <ul class="list-disc pl-4 text-xs text-slate-300 space-y-1">
                     <li><b>Top of ball:</b> Airflow moves with spin &rarr; Low Pressure, High Velocity.</li>
                     <li><b>Bottom of ball:</b> Airflow opposes spin &rarr; High Pressure, Low Velocity.</li>
-                    <li><b>Result:</b> <span class="keyword">Pressure Gradient</span> forces the ball <b>UPWARDS</b>.</li>
+                    <li><b>Result:</b> Pressure Gradient forces the ball <b>UPWARDS</b>.</li>
                 </ul>`;
-            topAir1.setColor(0x22c55e); topAir2.setColor(0x22c55e); 
+            topAir1.setColor(0x10b981); topAir2.setColor(0x10b981); 
             botAir1.setColor(0xef4444); botAir2.setColor(0xef4444); 
             
         } else {
-            // NO SPIN: Striking exactly through the center of mass
             forceArrow.visible = false;
             expDiv.innerHTML = `
                 <h4 class="font-bold text-slate-300 mb-1">No Spin (Concentric Force)</h4>
@@ -595,8 +914,55 @@
         }
     };
 
+    // Mod 5: Sprinter System
+    window.toggleSprinter = function() {
+        isSprinterRunning = !isSprinterRunning;
+        const btn = document.getElementById('btn-sprint-play');
+        if (isSprinterRunning) {
+            btn.innerText = "Pause";
+            btn.classList.replace('bg-emerald-600', 'bg-red-600');
+        } else {
+            btn.innerText = "Resume Sprinter";
+            btn.classList.replace('bg-red-600', 'bg-emerald-600');
+        }
+    };
+
+    window.resetSprinter = function() {
+        isSprinterRunning = false;
+        sprinterTime = 0;
+        sprinterPos = -7;
+        sprinterVelocity = 0;
+        sprinterGaitPhase = 0;
+        linearMotionPhase = 'acceleration';
+        const btn = document.getElementById('btn-sprint-play');
+        if (btn) {
+            btn.innerText = "Start Sprinter";
+            btn.classList.replace('bg-red-600', 'bg-emerald-600');
+        }
+        humanGroup.position.set(-7, 1.4, 0);
+        leftHip.rotation.x = 0; rightHip.rotation.x = 0;
+        leftShoulder.rotation.x = 0; rightShoulder.rotation.x = 0;
+        
+        // Face forward along the track (X-axis) instead of facing sideways
+        if (currentModule === 5) {
+            humanGroup.rotation.y = Math.PI / 2;
+        }
+
+        drawVelocityTimeGraph();
+        updateSprintLabel('Static');
+    };
+
+    function updateSprintLabel(text) {
+        const lbl = document.getElementById('sprint-phase-label');
+        if (!lbl) return;
+        lbl.innerText = text;
+        if (text === 'Acceleration') lbl.className = "text-emerald-400 font-mono text-[10px] uppercase";
+        else if (text === 'Constant Velocity') lbl.className = "text-yellow-400 font-mono text-[10px] uppercase";
+        else if (text === 'Deceleration') lbl.className = "text-red-400 font-mono text-[10px] uppercase";
+    }
+
     // ==========================================
-    // ANIMATION LOOP
+    // ANIMATION & KINEMATICS LOOP
     // ==========================================
     const clock = new THREE.Clock();
 
@@ -607,6 +973,7 @@
 
         controls.update();
 
+        // Axis Rotating Loop
         if (currentModule === 1) {
             const speed = 2 * delta;
             if (activeAxis === 'longitudinal') humanGroup.rotation.y += speed;
@@ -618,7 +985,6 @@
             humanGroup.rotation.x -= visualSpeed;
         }
         else if (currentModule === 3) {
-            // Positive offset (topspin) means the ball rotates forward (negative Z rotation in this setup)
             const ballSpinSpeed = 10 * delta * strikeOffset;
             ball.rotation.z -= ballSpinSpeed;
 
@@ -633,9 +999,48 @@
                 if (arrow.position.x < -3) arrow.position.x = 3;
                 arrow.position.y += Math.sin(time * 5 + index) * 0.002;
             });
-            
-            // Pulse the strike arrow slightly to make it look active
             strikeArrow.position.x = -2.2 + Math.sin(time * 8) * 0.05;
+        }
+        else if (currentModule === 5) {
+            // Linear Motion Sprinter Engine
+            if (isSprinterRunning) {
+                sprinterTime += delta;
+                
+                // Track kinematics phases: 0-3s acceleration, 3-6s constant, 6-9s deceleration
+                if (sprinterTime < 3) {
+                    linearMotionPhase = 'acceleration';
+                    sprinterVelocity = (sprinterTime / 3) * 8; 
+                    updateSprintLabel('Acceleration');
+                } else if (sprinterTime < 6) {
+                    linearMotionPhase = 'cruise';
+                    sprinterVelocity = 8; 
+                    updateSprintLabel('Constant Velocity');
+                } else if (sprinterTime < 9) {
+                    linearMotionPhase = 'deceleration';
+                    sprinterVelocity = 8 - ((sprinterTime - 6) / 3) * 8; 
+                    updateSprintLabel('Deceleration');
+                } else {
+                    // Loop execution restart
+                    sprinterTime = 0;
+                    sprinterPos = -7;
+                    sprinterGaitPhase = 0;
+                }
+
+                // Increment distance based on delta velocity integration
+                sprinterPos += (sprinterVelocity * delta) * 0.25; // scaled down to fit virtual track space
+                humanGroup.position.x = sprinterPos;
+
+                // Physics-corrected Gait Engine
+                // Rotate limbs relative to the body's local space (so they cycle forward/backward as they run)
+                sprinterGaitPhase += sprinterVelocity * delta * 6.0;
+
+                leftHip.rotation.x = Math.sin(sprinterGaitPhase) * 0.5;
+                rightHip.rotation.x = -Math.sin(sprinterGaitPhase) * 0.5;
+                leftShoulder.rotation.x = -Math.sin(sprinterGaitPhase) * 0.6;
+                rightShoulder.rotation.x = Math.sin(sprinterGaitPhase) * 0.6;
+                
+                drawVelocityTimeGraph();
+            }
         }
 
         renderer.render(scene, camera);
@@ -648,6 +1053,7 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    const moduleContainer = document.getElementById('module-content');
     switchModule(1);
     animate();
 
